@@ -2,6 +2,7 @@ package dev.sanaeb.altforge.gemini;
 
 import dev.sanaeb.altforge.gemini.dto.GeminiRequest;
 import dev.sanaeb.altforge.gemini.dto.GeminiResponse;
+import dev.sanaeb.altforge.lang.Language;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatusCode;
@@ -22,17 +23,6 @@ public class GeminiVisionService {
 
     private static final Logger log = LoggerFactory.getLogger(GeminiVisionService.class);
 
-    private static final String PROMPT = """
-            Write a concise, accurate alt text for this image, suitable for the HTML alt attribute.
-            Follow WCAG 2.1 guidance:
-            - Describe what is visually meaningful; ignore decorative detail.
-            - Keep it to one sentence, ideally under 125 characters.
-            - Do not start with "image of" or "picture of".
-            - Mention people, objects, actions, and any visible text.
-            - Use present tense and a neutral tone.
-            Return only the alt text. No quotes, no markdown, no leading or trailing punctuation other than a period.
-            """;
-
     private static final double TEMPERATURE = 0.2;
     private static final int MAX_OUTPUT_TOKENS = 200;
 
@@ -45,17 +35,17 @@ public class GeminiVisionService {
     }
 
     /**
-     * Send an image to Gemini and return the generated alt text. Throws
-     * {@link GeminiException} on any failure — the caller is expected to map
-     * it to a 5xx response.
+     * Send an image to Gemini and return the generated alt text in the
+     * requested language. Throws {@link GeminiException} on any failure — the
+     * caller is expected to map it to a 5xx response.
      */
-    public String generateAltText(byte[] imageBytes, String mimeType) {
+    public String generateAltText(byte[] imageBytes, String mimeType, Language language) {
         requireConfigured();
 
         String base64 = Base64.getEncoder().encodeToString(imageBytes);
         GeminiRequest body = new GeminiRequest(
                 List.of(new GeminiRequest.Content(List.of(
-                        GeminiRequest.Part.text(PROMPT),
+                        GeminiRequest.Part.text(language.prompt()),
                         GeminiRequest.Part.image(mimeType, base64)))),
                 new GeminiRequest.GenerationConfig(TEMPERATURE, MAX_OUTPUT_TOKENS));
 

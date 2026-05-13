@@ -1,10 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { generateAltText, ApiError } from '../services/api'
+import { generateAltText, ApiError, type AltTextLanguage } from '../services/api'
 import type { AltTextResponse } from '../types/api'
 import './Generator.css'
 
 const ACCEPTED_TYPES = 'image/png,image/jpeg,image/webp,image/gif'
 const MAX_BYTES = 10 * 1024 * 1024
+
+const LANGUAGES: { code: AltTextLanguage; label: string }[] = [
+  { code: 'en', label: 'EN' },
+  { code: 'fr', label: 'FR' },
+]
 
 export function Generator() {
   const [file, setFile] = useState<File | null>(null)
@@ -14,6 +19,7 @@ export function Generator() {
   const [error, setError] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [language, setLanguage] = useState<AltTextLanguage>('en')
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -61,7 +67,7 @@ export function Generator() {
     setError(null)
     setResult(null)
     try {
-      const response = await generateAltText(file)
+      const response = await generateAltText(file, language)
       setResult(response)
     } catch (err) {
       if (err instanceof ApiError) {
@@ -74,7 +80,7 @@ export function Generator() {
     } finally {
       setLoading(false)
     }
-  }, [file])
+  }, [file, language])
 
   const handleCopy = useCallback(async () => {
     if (!result) return
@@ -97,6 +103,21 @@ export function Generator() {
 
   return (
     <div className="generator">
+      <div className="lang-toggle" role="group" aria-label="Output language">
+        {LANGUAGES.map((lang) => (
+          <button
+            key={lang.code}
+            type="button"
+            className={`lang-toggle__btn ${language === lang.code ? 'lang-toggle__btn--active' : ''}`}
+            onClick={() => setLanguage(lang.code)}
+            aria-pressed={language === lang.code}
+          >
+            {lang.label}
+          </button>
+        ))}
+        <span className="lang-toggle__hint">output language</span>
+      </div>
+
       <label
         className={`dropzone ${dragging ? 'dropzone--active' : ''} ${file ? 'dropzone--with-file' : ''}`}
         onDragEnter={(e) => {

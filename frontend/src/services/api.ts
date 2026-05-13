@@ -13,15 +13,21 @@ export class ApiError extends Error {
   }
 }
 
+export type AltTextLanguage = 'en' | 'fr'
+
 /**
  * Upload one image and get a generated alt text back.
  * Throws {@link ApiError} on a non-2xx response.
  */
-export async function generateAltText(image: File): Promise<AltTextResponse> {
+export async function generateAltText(
+  image: File,
+  language: AltTextLanguage = 'en',
+): Promise<AltTextResponse> {
   const formData = new FormData()
   formData.append('image', image)
 
-  const response = await fetch(`${API_BASE}/api/alt-text`, {
+  const url = `${API_BASE}/api/alt-text?lang=${encodeURIComponent(language)}`
+  const response = await fetch(url, {
     method: 'POST',
     body: formData,
   })

@@ -3,6 +3,7 @@ package dev.sanaeb.altforge.web;
 import dev.sanaeb.altforge.gemini.GeminiException;
 import dev.sanaeb.altforge.gemini.GeminiProperties;
 import dev.sanaeb.altforge.gemini.GeminiVisionService;
+import dev.sanaeb.altforge.lang.Language;
 import dev.sanaeb.altforge.web.dto.AltTextResponse;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -17,8 +18,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.io.IOException;
 import java.util.Map;
 
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.BAD_GATEWAY;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.PAYLOAD_TOO_LARGE;
 
 /**
@@ -39,14 +40,17 @@ public class AltTextController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<AltTextResponse> generate(@RequestParam("image") MultipartFile image) throws IOException {
+    public ResponseEntity<AltTextResponse> generate(
+            @RequestParam("image") MultipartFile image,
+            @RequestParam(value = "lang", defaultValue = "en") String lang) throws IOException {
         validate(image);
+        Language language = Language.fromString(lang);
 
-        String altText = gemini.generateAltText(image.getBytes(), image.getContentType());
+        String altText = gemini.generateAltText(image.getBytes(), image.getContentType(), language);
 
         AltTextResponse body = new AltTextResponse(
                 altText,
-                "en",
+                language.iso(),
                 geminiProperties.model(),
                 image.getOriginalFilename(),
                 image.getSize());
