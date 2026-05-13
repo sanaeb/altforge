@@ -7,9 +7,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 /**
  * Web-layer configuration.
  *
- * <p>For local development the Vite dev server runs on
- * <code>http://localhost:5173</code> and needs to call the Spring back-end on
- * <code>http://localhost:8080</code>. We open CORS for that origin only.
+ * <p>For local development the Vite dev server typically runs on
+ * <code>:5173</code> but falls back to <code>:5174</code>, <code>:5175</code>…
+ * when the port is busy (e.g. another project is already serving on
+ * <code>:5173</code>). We accept any localhost port via
+ * {@link CorsRegistry#allowedOriginPatterns(String...)}.
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
@@ -17,7 +19,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOrigins("http://localhost:5173")
+                .allowedOriginPatterns("http://localhost:[*]", "http://127.0.0.1:[*]")
                 .allowedMethods("GET", "POST", "OPTIONS")
                 .allowedHeaders("*")
                 .maxAge(3600);
