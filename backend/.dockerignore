@@ -1,0 +1,23 @@
+# Build artifacts
+target/
+*.jar
+*.war
+
+# Local config / secrets
+.env
+.env.local
+*.local
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Logs
+*.log
+
+# Git
+.git/
+.gitignore
+.gitattributes

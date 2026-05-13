@@ -1,5 +1,6 @@
 package dev.sanaeb.altforge.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -7,19 +8,27 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 /**
  * Web-layer configuration.
  *
- * <p>For local development the Vite dev server typically runs on
- * <code>:5173</code> but falls back to <code>:5174</code>, <code>:5175</code>…
- * when the port is busy (e.g. another project is already serving on
- * <code>:5173</code>). We accept any localhost port via
- * {@link CorsRegistry#allowedOriginPatterns(String...)}.
+ * <p>Allowed origin patterns are configurable via the
+ * {@code altforge.cors.allowed-origin-patterns} property (or the
+ * {@code CORS_ALLOWED_ORIGIN_PATTERNS} environment variable in production).
+ * Defaults cover the local Vite dev servers; production deployments should
+ * extend the list with the public front-end URL.
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
+    private final String[] allowedOriginPatterns;
+
+    public WebConfig(
+            @Value("${altforge.cors.allowed-origin-patterns:http://localhost:[*],http://127.0.0.1:[*]}")
+            String[] allowedOriginPatterns) {
+        this.allowedOriginPatterns = allowedOriginPatterns;
+    }
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOriginPatterns("http://localhost:[*]", "http://127.0.0.1:[*]")
+                .allowedOriginPatterns(allowedOriginPatterns)
                 .allowedMethods("GET", "POST", "OPTIONS")
                 .allowedHeaders("*")
                 .maxAge(3600);
