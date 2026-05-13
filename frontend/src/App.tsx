@@ -19,7 +19,7 @@ function App() {
       </section>
 
       <footer className="app__footer">
-        <span className="app__footer-chip">v0 · stub</span>
+        <span className="app__footer-chip">v0 · live</span>
         <span>Wired to <code>POST /api/alt-text</code></span>
       </footer>
     </main>
