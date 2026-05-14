@@ -15,6 +15,8 @@ public interface RequestAuditRepository extends JpaRepository<RequestAudit, Long
 
     long countByCreatedAtAfterAndStatusCodeLessThan(OffsetDateTime since, short statusCode);
 
+    long countByClientIpHashAndCreatedAtAfter(String clientIpHash, OffsetDateTime since);
+
     /**
      * Number of calls per ISO language code over the window, ordered by count desc.
      * Returns rows as {@code [language, count]}.

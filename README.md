@@ -84,6 +84,58 @@ curl -X POST "https://altforge.onrender.com/api/alt-text/batch?lang=en" \
 }
 ```
 
+### `POST /api/alt-text/batch/async`
+
+Same input as the synchronous batch, but returns **HTTP 202** immediately with a `job_id`. A dedicated background worker (`@Async` on a Spring `ThreadPoolTaskExecutor`) processes the images one by one; clients poll `GET /api/jobs/{id}` to follow progress.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `images` | file[] | yes | Up to 10 files, 10 MB each. |
+| `lang` | string | no | `fr` or `en`. Defaults to `en`. |
+
+**Submit**
+
+```bash
+curl -X POST "https://altforge.onrender.com/api/alt-text/batch/async?lang=en" \
+  -F "images=@a.jpg" \
+  -F "images=@b.jpg"
+```
+
+**Response**
+
+```json
+{
+  "id": "5d8c1f8e-…-3f6a",
+  "status": "PENDING",
+  "totalImages": 2,
+  "acceptedImages": 2,
+  "rejectedImages": 0
+}
+```
+
+### `GET /api/jobs/{id}`
+
+Snapshot of an async job and its items. Status transitions: `PENDING` → `RUNNING` → `SUCCEEDED` or `FAILED`. Items appear with `altText` set as the worker completes them; the `processedImages` counter increases in lockstep so the client can render a progress bar.
+
+```json
+{
+  "id": "5d8c1f8e-…-3f6a",
+  "status": "RUNNING",
+  "createdAt": "2026-05-14T11:42:17Z",
+  "startedAt": "2026-05-14T11:42:17Z",
+  "completedAt": null,
+  "model": "gemini-2.5-flash-lite",
+  "language": "en",
+  "totalImages": 2,
+  "processedImages": 1,
+  "errorCode": null,
+  "items": [
+    { "position": 0, "fileName": "a.jpg", "sizeBytes": 84211, "altText": "A red apple.", "language": "en", "completedAt": "2026-05-14T11:42:19Z" },
+    { "position": 1, "fileName": "b.jpg", "sizeBytes": 122044 }
+  ]
+}
+```
+
 ### `GET /api/stats`
 
 Aggregated audit metrics over a configurable rolling window (defaults to the last 24 hours). Counts, success rate, average latency, and breakdowns by language and endpoint.
@@ -170,6 +222,9 @@ The backend reads its configuration from environment variables (see `application
 | `SPRING_DATASOURCE_URL` | JDBC URL of the audit Postgres (e.g. `jdbc:postgresql://host/altforge?sslmode=require`) |
 | `SPRING_DATASOURCE_USERNAME` | Database role used by Spring Data JPA |
 | `SPRING_DATASOURCE_PASSWORD` | Database password |
+| `ALTFORGE_RATELIMIT_ENABLED` | `true` to turn on per-IP rate limiting (default `false`) |
+| `ALTFORGE_RATELIMIT_WINDOW_MINUTES` | Rolling window over which calls are counted (default 60) |
+| `ALTFORGE_RATELIMIT_MAX_REQUESTS` | Max calls per IP within the window before a 429 is returned (default 60) |
 | `PORT` / `SERVER_PORT` | HTTP port (default 8080) |
 
 ---
@@ -185,6 +240,6 @@ The repo includes a multi-stage `backend/Dockerfile` (Eclipse Temurin 17 JDK bui
 - **v0 (shipped):** upload one image, pick FR/EN, generate alt text, copy to clipboard
 - **v1 (shipped):** batch upload (up to 10 images per request) with per-image error handling, CSV/JSON export, single/batch mode toggle in the UI
 - **v2.0 (shipped):** audit DB (Postgres + Flyway), `GET /api/stats` with aggregates, stats tab in the UI
-- **v2.1:** per-IP rate limiting backed by the audit table (`429 Too Many Requests`)
-- **v2.2:** async queue (Spring Batch / `@Async`), polling endpoint, job table
+- **v2.1 (shipped):** per-IP rate limiting backed by the audit table (`429 Too Many Requests` + `Retry-After`), configurable via `ALTFORGE_RATELIMIT_*` env vars
+- **v2.2 (shipped):** async queue via `@Async` + dedicated `ThreadPoolTaskExecutor`, `POST /api/alt-text/batch/async` returns 202 + job id, `GET /api/jobs/{id}` for polling, Async tab in the UI with progress bar
 - **v3:** auth, billing, public alt-text-as-a-service

@@ -35,6 +35,9 @@ class StatsControllerTest {
     @MockitoBean
     private GeminiProperties geminiProperties;
 
+    @MockitoBean
+    private dev.sanaeb.altforge.ratelimit.RateLimitProperties rateLimitProperties;
+
     @Test
     @DisplayName("Should aggregate counts, success rate, average latency and breakdowns")
     void aggregatesAllFields() throws Exception {

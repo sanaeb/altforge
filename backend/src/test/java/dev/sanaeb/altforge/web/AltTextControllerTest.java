@@ -35,6 +35,12 @@ class AltTextControllerTest {
     @MockitoBean
     private RequestAuditService requestAuditService;
 
+    @MockitoBean
+    private dev.sanaeb.altforge.ratelimit.RateLimitProperties rateLimitProperties;
+
+    @MockitoBean
+    private dev.sanaeb.altforge.audit.RequestAuditRepository requestAuditRepository;
+
     @Test
     @DisplayName("Should return 200 with generated alt text for a valid image upload")
     void returnsGeneratedAltText() throws Exception {
