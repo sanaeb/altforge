@@ -23,3 +23,15 @@ export interface BatchAltTextResponse {
   failed: number
   items: BatchItemResult[]
 }
+
+/** Shape of the JSON returned by `GET /api/stats`. */
+export interface StatsResponse {
+  totalRequests: number
+  succeededRequests: number
+  failedRequests: number
+  successRatePct: number
+  avgLatencyMs: number | null
+  byLanguage: Record<string, number>
+  byEndpoint: Record<string, number>
+  windowHours: number
+}

@@ -1,4 +1,4 @@
-import type { AltTextResponse, BatchAltTextResponse } from '../types/api'
+import type { AltTextResponse, BatchAltTextResponse, StatsResponse } from '../types/api'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
 
@@ -76,6 +76,22 @@ export async function generateAltTextBatch(
   }
 
   return response.json() as Promise<BatchAltTextResponse>
+}
+
+/**
+ * Fetch aggregated audit stats over the given window (defaults to 24h on the
+ * backend).
+ */
+export async function fetchStats(hours = 24): Promise<StatsResponse> {
+  const url = `${API_BASE}/api/stats?hours=${hours}`
+  const response = await fetch(url)
+
+  if (!response.ok) {
+    const message = await safeReadText(response)
+    throw new ApiError(message || `Request failed (${response.status})`, response.status)
+  }
+
+  return response.json() as Promise<StatsResponse>
 }
 
 async function safeReadText(response: Response): Promise<string> {

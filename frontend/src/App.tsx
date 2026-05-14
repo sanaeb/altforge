@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { Generator } from './components/Generator'
 import { BatchGenerator } from './components/BatchGenerator'
+import { StatsPanel } from './components/StatsPanel'
 import './App.css'
 
-type Mode = 'single' | 'batch'
+type Mode = 'single' | 'batch' | 'stats'
 
 const MODES: { value: Mode; label: string; hint: string }[] = [
   { value: 'single', label: 'One image', hint: 'POST /api/alt-text' },
   { value: 'batch', label: 'Batch', hint: 'POST /api/alt-text/batch' },
+  { value: 'stats', label: 'Stats', hint: 'GET /api/stats' },
 ]
 
 function App() {
@@ -41,11 +43,13 @@ function App() {
       </nav>
 
       <section className="app__main">
-        {mode === 'single' ? <Generator /> : <BatchGenerator />}
+        {mode === 'single' && <Generator />}
+        {mode === 'batch' && <BatchGenerator />}
+        {mode === 'stats' && <StatsPanel />}
       </section>
 
       <footer className="app__footer">
-        <span className="app__footer-chip">v1 · live</span>
+        <span className="app__footer-chip">v2 · live</span>
         <span>Wired to <code>{MODES.find((m) => m.value === mode)?.hint}</code></span>
       </footer>
     </main>
