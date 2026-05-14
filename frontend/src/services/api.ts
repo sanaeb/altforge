@@ -1,6 +1,9 @@
-import type { AltTextResponse } from '../types/api'
+import type { AltTextResponse, BatchAltTextResponse } from '../types/api'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
+
+/** Maximum number of images accepted per batch by the backend. */
+export const MAX_BATCH_SIZE = 10
 
 /** Errors thrown by the API layer. */
 export class ApiError extends Error {
@@ -38,6 +41,41 @@ export async function generateAltText(
   }
 
   return response.json() as Promise<AltTextResponse>
+}
+
+/**
+ * Upload up to {@link MAX_BATCH_SIZE} images at once. The backend always
+ * returns 200 when the request itself is valid; per-image failures are
+ * reported via {@link BatchItemResult.error}.
+ */
+export async function generateAltTextBatch(
+  images: File[],
+  language: AltTextLanguage = 'en',
+): Promise<BatchAltTextResponse> {
+  if (images.length === 0) {
+    throw new ApiError('At least one image is required.', 400)
+  }
+  if (images.length > MAX_BATCH_SIZE) {
+    throw new ApiError(`Batch size is limited to ${MAX_BATCH_SIZE} images.`, 400)
+  }
+
+  const formData = new FormData()
+  for (const image of images) {
+    formData.append('images', image)
+  }
+
+  const url = `${API_BASE}/api/alt-text/batch?lang=${encodeURIComponent(language)}`
+  const response = await fetch(url, {
+    method: 'POST',
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const message = await safeReadText(response)
+    throw new ApiError(message || `Request failed (${response.status})`, response.status)
+  }
+
+  return response.json() as Promise<BatchAltTextResponse>
 }
 
 async function safeReadText(response: Response): Promise<string> {
