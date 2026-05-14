@@ -24,19 +24,18 @@ AI alt-text generator for WCAG accessibility compliance. Drop an image in your b
 
 ### `POST /api/alt-text`
 
-Multipart upload. Returns the generated alt text plus metadata.
+Single-image multipart upload. Returns the generated alt text plus metadata.
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `image` | file | yes | JPEG, PNG, WebP, GIF. Max 10 MB. |
-| `language` | string | no | `fr` or `en`. Defaults to `en`. |
+| `lang` | string | no | `fr` or `en`. Defaults to `en`. |
 
 **Example**
 
 ```bash
-curl -X POST https://altforge.onrender.com/api/alt-text \
-  -F "image=@photo.jpg" \
-  -F "language=fr"
+curl -X POST "https://altforge.onrender.com/api/alt-text?lang=fr" \
+  -F "image=@photo.jpg"
 ```
 
 **Response**
@@ -46,7 +45,41 @@ curl -X POST https://altforge.onrender.com/api/alt-text \
   "altText": "Une femme en kimono bleu fleuri marche dans une rue pavée bordée de maisons traditionnelles japonaises avec une pagode au loin.",
   "language": "fr",
   "model": "gemini-2.5-flash-lite",
+  "fileName": "photo.jpg",
   "sizeBytes": 159642
+}
+```
+
+### `POST /api/alt-text/batch`
+
+Process up to 10 images in one request. Always returns HTTP 200 when the request itself is valid; per-image failures are reported through individual `items[].error` codes (`empty_file`, `invalid_image`, `too_large`, `gemini_unavailable`, `io_error`).
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `images` | file[] | yes | Up to 10 files, 10 MB each, 60 MB total per request. |
+| `lang` | string | no | `fr` or `en`. Defaults to `en`. |
+
+**Example**
+
+```bash
+curl -X POST "https://altforge.onrender.com/api/alt-text/batch?lang=en" \
+  -F "images=@a.jpg" \
+  -F "images=@b.png" \
+  -F "images=@c.webp"
+```
+
+**Response**
+
+```json
+{
+  "model": "gemini-2.5-flash-lite",
+  "succeeded": 2,
+  "failed": 1,
+  "items": [
+    { "fileName": "a.jpg", "altText": "A red apple on a wooden table.", "language": "en", "sizeBytes": 84211 },
+    { "fileName": "b.png", "altText": "A blue mug next to an open book.", "language": "en", "sizeBytes": 122044 },
+    { "fileName": "c.webp", "sizeBytes": 12000000, "error": "too_large" }
+  ]
 }
 ```
 
@@ -115,6 +148,6 @@ The repo includes a multi-stage `backend/Dockerfile` (Eclipse Temurin 17 JDK bui
 ## Roadmap
 
 - **v0 (shipped):** upload one image, pick FR/EN, generate alt text, copy to clipboard
-- **v1:** batch upload (10–100 images), CSV/JSON export
+- **v1 (shipped):** batch upload (up to 10 images per request) with per-image error handling, CSV/JSON export, single/batch mode toggle in the UI
 - **v2:** async queue (Spring Batch), per-user quotas, audit DB
 - **v3:** auth, billing, public alt-text-as-a-service
