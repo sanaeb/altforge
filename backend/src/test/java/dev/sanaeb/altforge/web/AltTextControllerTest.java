@@ -1,5 +1,6 @@
 package dev.sanaeb.altforge.web;
 
+import dev.sanaeb.altforge.audit.RequestAuditService;
 import dev.sanaeb.altforge.gemini.GeminiException;
 import dev.sanaeb.altforge.gemini.GeminiProperties;
 import dev.sanaeb.altforge.gemini.GeminiVisionService;
@@ -30,6 +31,9 @@ class AltTextControllerTest {
 
     @MockitoBean
     private GeminiProperties geminiProperties;
+
+    @MockitoBean
+    private RequestAuditService requestAuditService;
 
     @Test
     @DisplayName("Should return 200 with generated alt text for a valid image upload")

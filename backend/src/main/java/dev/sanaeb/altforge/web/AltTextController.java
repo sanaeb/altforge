@@ -1,5 +1,6 @@
 package dev.sanaeb.altforge.web;
 
+import dev.sanaeb.altforge.audit.RequestAuditInterceptor;
 import dev.sanaeb.altforge.gemini.GeminiException;
 import dev.sanaeb.altforge.gemini.GeminiProperties;
 import dev.sanaeb.altforge.gemini.GeminiVisionService;
@@ -7,6 +8,7 @@ import dev.sanaeb.altforge.lang.Language;
 import dev.sanaeb.altforge.web.dto.AltTextResponse;
 import dev.sanaeb.altforge.web.dto.BatchAltTextResponse;
 import dev.sanaeb.altforge.web.dto.BatchItemResult;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -50,10 +52,14 @@ public class AltTextController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<AltTextResponse> generate(
+            HttpServletRequest request,
             @RequestParam("image") MultipartFile image,
             @RequestParam(value = "lang", defaultValue = "en") String lang) throws IOException {
         validate(image);
         Language language = Language.fromString(lang);
+
+        request.setAttribute(RequestAuditInterceptor.ATTR_IMAGES_COUNT, 1);
+        request.setAttribute(RequestAuditInterceptor.ATTR_TOTAL_BYTES, image.getSize());
 
         String altText = gemini.generateAltText(image.getBytes(), image.getContentType(), language);
 
@@ -68,6 +74,7 @@ public class AltTextController {
 
     @PostMapping(path = "/batch", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BatchAltTextResponse> generateBatch(
+            HttpServletRequest request,
             @RequestParam("images") List<MultipartFile> images,
             @RequestParam(value = "lang", defaultValue = "en") String lang) {
         if (images == null || images.isEmpty()) {
@@ -79,6 +86,10 @@ public class AltTextController {
         }
 
         Language language = Language.fromString(lang);
+        long totalBytes = images.stream().mapToLong(MultipartFile::getSize).sum();
+        request.setAttribute(RequestAuditInterceptor.ATTR_IMAGES_COUNT, images.size());
+        request.setAttribute(RequestAuditInterceptor.ATTR_TOTAL_BYTES, totalBytes);
+
         List<BatchItemResult> items = new ArrayList<>(images.size());
         for (MultipartFile image : images) {
             items.add(processOne(image, language));
@@ -114,7 +125,9 @@ public class AltTextController {
     }
 
     @ExceptionHandler(GeminiException.class)
-    public ResponseEntity<Map<String, String>> handleGeminiFailure(GeminiException e) {
+    public ResponseEntity<Map<String, String>> handleGeminiFailure(
+            GeminiException e, HttpServletRequest request) {
+        request.setAttribute(RequestAuditInterceptor.ATTR_ERROR_CODE, "gemini_unavailable");
         return ResponseEntity.status(BAD_GATEWAY).body(Map.of(
                 "error", "gemini_unavailable",
                 "message", e.getMessage()));
