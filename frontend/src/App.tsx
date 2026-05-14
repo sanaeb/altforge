@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { Generator } from './components/Generator'
 import { BatchGenerator } from './components/BatchGenerator'
+import { AsyncBatchGenerator } from './components/AsyncBatchGenerator'
 import { StatsPanel } from './components/StatsPanel'
 import './App.css'
 
-type Mode = 'single' | 'batch' | 'stats'
+type Mode = 'single' | 'batch' | 'async' | 'stats'
 
 const MODES: { value: Mode; label: string; hint: string }[] = [
   { value: 'single', label: 'One image', hint: 'POST /api/alt-text' },
   { value: 'batch', label: 'Batch', hint: 'POST /api/alt-text/batch' },
+  { value: 'async', label: 'Async', hint: 'POST /api/alt-text/batch/async' },
   { value: 'stats', label: 'Stats', hint: 'GET /api/stats' },
 ]
 
@@ -45,6 +47,7 @@ function App() {
       <section className="app__main">
         {mode === 'single' && <Generator />}
         {mode === 'batch' && <BatchGenerator />}
+        {mode === 'async' && <AsyncBatchGenerator />}
         {mode === 'stats' && <StatsPanel />}
       </section>
 

@@ -1,4 +1,10 @@
-import type { AltTextResponse, BatchAltTextResponse, StatsResponse } from '../types/api'
+import type {
+  AltTextResponse,
+  BatchAltTextResponse,
+  BatchJobStatusResponse,
+  BatchJobSubmitResponse,
+  StatsResponse,
+} from '../types/api'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
 
@@ -76,6 +82,49 @@ export async function generateAltTextBatch(
   }
 
   return response.json() as Promise<BatchAltTextResponse>
+}
+
+/**
+ * Submit an async batch. Returns immediately with a job id; poll
+ * {@link fetchJob} to follow progress.
+ */
+export async function submitAsyncBatch(
+  images: File[],
+  language: AltTextLanguage = 'en',
+): Promise<BatchJobSubmitResponse> {
+  if (images.length === 0) {
+    throw new ApiError('At least one image is required.', 400)
+  }
+  if (images.length > MAX_BATCH_SIZE) {
+    throw new ApiError(`Batch size is limited to ${MAX_BATCH_SIZE} images.`, 400)
+  }
+
+  const formData = new FormData()
+  for (const image of images) {
+    formData.append('images', image)
+  }
+
+  const url = `${API_BASE}/api/alt-text/batch/async?lang=${encodeURIComponent(language)}`
+  const response = await fetch(url, { method: 'POST', body: formData })
+
+  if (!response.ok) {
+    const message = await safeReadText(response)
+    throw new ApiError(message || `Request failed (${response.status})`, response.status)
+  }
+
+  return response.json() as Promise<BatchJobSubmitResponse>
+}
+
+export async function fetchJob(jobId: string): Promise<BatchJobStatusResponse> {
+  const url = `${API_BASE}/api/jobs/${encodeURIComponent(jobId)}`
+  const response = await fetch(url)
+
+  if (!response.ok) {
+    const message = await safeReadText(response)
+    throw new ApiError(message || `Request failed (${response.status})`, response.status)
+  }
+
+  return response.json() as Promise<BatchJobStatusResponse>
 }
 
 /**
